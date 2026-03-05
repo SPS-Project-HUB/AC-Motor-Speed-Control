@@ -1,47 +1,26 @@
-<!DOCTYPE html>
+<input type="range" min="0" max="100" value="0" id="speedSlider">
 
-<html>
-<head>
-<title>Fan Speed Control</title>
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 
 const firebaseConfig = {
-apiKey: "AIzaSyCso7pGiccOVruRU5AYmtPDt2iwSyjXvFs",
-authDomain: "ac-motor-speed-control.firebaseapp.com",
-databaseURL: "https://ac-motor-speed-control-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId: "ac-motor-speed-control",
-storageBucket: "ac-motor-speed-control.firebasestorage.app",
-messagingSenderId: "334087231301",
-appId: "1:334087231301:web:585578c8673dd6532f502c"
+  apiKey: "AIzaSyC...",
+  authDomain: "ac-motor-speed-control.firebaseapp.com",
+  databaseURL: "https://ac-motor-speed-control-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ac-motor-speed-control",
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const db = getDatabase();
 
-window.updateSpeed = function(value)
-{
-set(ref(db, 'fan/setSpeed'), parseInt(value));
-}
+const slider = document.getElementById("speedSlider");
 
-onValue(ref(db, 'fan/currentSpeed'), (snapshot) =>
-{
-document.getElementById("speedValue").innerHTML = snapshot.val() + "%";
-});
+slider.oninput = function() {
+
+  set(ref(db,"motor/speed"), parseInt(this.value));
+
+};
 
 </script>
-</head>
-
-<body style="text-align:center;font-family:Arial">
-
-<h2>ESP32 Fan Speed Control</h2>
-
-<input type="range" min="0" max="100" value="50"
-oninput="updateSpeed(this.value)">
-
-<h1 id="speedValue">0%</h1>
-
-</body>
-</html>
