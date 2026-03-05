@@ -3,19 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AC motor · TRIAC + Firebase dashboard</title>
-    <!-- Font Awesome 6 (free) for icons -->
+    <title>AC Motor Speed Control · Firebase WebApp</title>
+    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         body {
-            background: linear-gradient(145deg, #121826 0%, #1e2638 100%);
+            background: radial-gradient(circle at 10% 20%, #1a2639, #0c1422);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -23,487 +26,597 @@
             padding: 1.5rem;
         }
 
-        .dashboard {
-            max-width: 920px;
+        .webapp-container {
+            max-width: 1100px;
             width: 100%;
         }
 
-        /* main card – hardware panel */
-        .card {
-            background: rgba(18, 25, 38, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(66, 140, 255, 0.2);
-            border-radius: 2.5rem;
-            padding: 2.5rem 2.2rem;
-            box-shadow: 0 25px 50px -8px rgba(0,0,0,0.6), 0 0 0 1px rgba(76, 145, 255, 0.1) inset;
-            transition: all 0.2s ease;
+        /* main control card */
+        .control-card {
+            background: rgba(18, 28, 45, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 180, 255, 0.25);
+            border-radius: 3rem;
+            padding: 2.5rem 2.5rem;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(80, 160, 255, 0.2) inset;
         }
 
-        /* header with chip-like labels */
-        .header-tags {
+        /* header with status */
+        .app-header {
             display: flex;
             flex-wrap: wrap;
-            gap: 1rem 1.8rem;
+            justify-content: space-between;
             align-items: center;
-            margin-bottom: 2.5rem;
-            border-bottom: 1px solid rgba(100, 150, 255, 0.2);
-            padding-bottom: 1.5rem;
-        }
-
-        .tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.6rem;
-            background: rgba(10, 20, 40, 0.7);
-            border-radius: 60px;
-            padding: 0.5rem 1.3rem 0.5rem 1rem;
-            border: 1px solid #2d405b;
-            box-shadow: 0 4px 12px rgba(0, 10, 30, 0.6);
-        }
-
-        .tag i {
-            font-size: 1.2rem;
-            color: #3b82f6;
-            text-shadow: 0 0 8px #2563eb80;
-        }
-
-        .tag span {
-            font-weight: 500;
-            color: #ccdfff;
-            letter-spacing: 0.3px;
-            font-size: 0.95rem;
-        }
-
-        .tag .highlight {
-            background: #1e2b48;
-            padding: 0.2rem 0.9rem;
-            border-radius: 30px;
-            color: white;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-left: 0.3rem;
-            border: 1px solid #3f5e9e;
-        }
-
-        .wifi-symbol {
-            display: flex;
-            gap: 0.2rem;
-            align-items: center;
-        }
-        .wifi-symbol i {
-            font-size: 1rem;
-            color: #34d399;
-        }
-
-        /* main rows (2‑col grid) */
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 2rem;
             margin-bottom: 2.2rem;
+            padding-bottom: 1.2rem;
+            border-bottom: 1px solid #2a3f60;
         }
 
-        @media (max-width: 620px) {
-            .grid-2 {
-                grid-template-columns: 1fr;
-                gap: 1.8rem;
-            }
-        }
-
-        /* left side – triac / zero cross visualization */
-        .triac-panel {
-            background: #0f172acc;
-            border-radius: 2rem;
-            padding: 1.6rem 1.5rem 1.8rem 1.5rem;
-            border: 1px solid #2a3b55;
-            box-shadow: 0 10px 25px -12px #00000080;
-        }
-
-        .panel-title {
+        .logo-area {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
-            color: #94a9d1;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-bottom: 1.2rem;
-        }
-        .panel-title i {
-            color: #f97316;
-            font-size: 1.1rem;
+            gap: 1rem;
         }
 
-        .zc-visual {
-            background: #0b0f1a;
-            border-radius: 3rem;
-            padding: 1.8rem 0.8rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            border: 1px solid #334155;
-        }
-
-        .sine-row {
+        .logo-icon {
+            background: #2563eb;
+            width: 48px;
+            height: 48px;
+            border-radius: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 100%;
-            gap: 0.5rem 1rem;
-            flex-wrap: wrap;
+            font-size: 1.6rem;
+            color: white;
+            box-shadow: 0 0 20px #3b82f6;
         }
 
-        .sine-svg {
-            height: 40px;
-            width: 180px;
-        }
-
-        .pulse-badge {
-            background: #1e2b3f;
-            border-radius: 40px;
-            padding: 0.4rem 1.4rem;
-            border-left: 4px solid #facc15;
-            font-size: 1.1rem;
+        .title h1 {
+            color: white;
             font-weight: 600;
-            color: #fcd34d;
+            font-size: 1.8rem;
+            letter-spacing: -0.5px;
         }
-
-        .triac-pin {
-            margin-top: 1.5rem;
+        .title p {
+            color: #90b0dd;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            background: #19233c;
-            padding: 0.8rem 1.5rem;
+            gap: 6px;
+        }
+
+        .connection-status {
+            background: #1a2940;
             border-radius: 60px;
-        }
-
-        .pin-label {
+            padding: 0.6rem 1.5rem;
             display: flex;
             align-items: center;
-            gap: 0.7rem;
+            gap: 0.8rem;
+            border: 1px solid #3e587b;
         }
-        .pin-label i {
-            font-size: 1.5rem;
-            color: #eab308;
+        .status-led {
+            width: 12px;
+            height: 12px;
+            border-radius: 20px;
+            background: #f59e0b;
+            box-shadow: 0 0 10px #f59e0b;
+            transition: background 0.2s, box-shadow 0.2s;
         }
-        .pin-label span {
-            color: #b3cbff;
+        .status-led.connected {
+            background: #10b981;
+            box-shadow: 0 0 15px #10b981;
+        }
+        .status-text {
+            color: #e0edff;
             font-weight: 500;
         }
-        .pin-number {
-            background: #0f1a2b;
-            padding: 0.3rem 1.2rem;
-            border-radius: 40px;
-            color: #93c5fd;
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
-            border: 1px solid #3f5680;
+
+        /* main slider and live values */
+        .speed-dial {
+            background: #101b2b;
+            border-radius: 3rem;
+            padding: 2.2rem 2rem 2.5rem 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid #2b4060;
+            box-shadow: inset 0 2px 8px #00000060;
         }
 
-        /* right side – speed meter + firebase */
-        .speed-panel {
-            background: #0f172acc;
-            border-radius: 2rem;
-            padding: 1.6rem 1.5rem 1.8rem;
-            border: 1px solid #2a3b55;
+        .speed-percentage {
             display: flex;
-            flex-direction: column;
+            align-items: baseline;
+            justify-content: center;
+            gap: 0.3rem;
+            margin-bottom: 2rem;
+        }
+        .speed-number {
+            font-size: 7rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 0 30px #3b82f6;
+            line-height: 1;
+        }
+        .speed-symbol {
+            font-size: 3rem;
+            color: #8bb2ff;
         }
 
-        .firebase-row {
+        .slider-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 16px;
+            background: linear-gradient(90deg, #1e3b5a, #3b82f6, #60a5fa);
+            border-radius: 30px;
+            outline: none;
+            border: 1px solid #6095dd;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 38px;
+            height: 38px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px #00000080, 0 0 0 3px #3b82f6;
+            cursor: pointer;
+            border: 2px solid #bfdbfe;
+            transition: 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.12);
+            background: #eff6ff;
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.8rem;
+            color: #a1c0f0;
+            font-weight: 500;
+            padding: 0 0.5rem;
+        }
+
+        /* firebase path + triac info */
+        .info-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: space-between;
+            background: #0e1829;
+            border-radius: 3rem;
+            padding: 1.2rem 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid #314d78;
+            align-items: center;
+        }
+
+        .fb-path {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            background: #1d2c42;
-            border-radius: 40px;
-            padding: 0.4rem 1.2rem 0.4rem 0.8rem;
-            width: fit-content;
-            margin-bottom: 1.2rem;
+            gap: 0.8rem;
+            background: #1b2b44;
+            padding: 0.3rem 1.2rem 0.3rem 0.8rem;
+            border-radius: 4rem;
+            border: 1px solid #385d92;
         }
-        .firebase-row i {
+        .fb-path i {
             color: #fbbf24;
         }
-        .firebase-row span {
-            color: #fde68a;
-            font-weight: 500;
-        }
-        .fb-path {
-            background: #263650;
-            border-radius: 40px;
+        .fb-path code {
+            background: #263b58;
             padding: 0.2rem 1rem;
-            font-family: monospace;
-            color: #b1d0ff;
-            font-size: 0.85rem;
+            border-radius: 3rem;
+            color: #c4dcff;
+            font-size: 1rem;
         }
 
-        .speed-readout {
-            background: #0e1627;
-            border-radius: 2.5rem;
-            padding: 1.8rem 0.5rem;
-            margin: 0.5rem 0 1.2rem 0;
-            text-align: center;
-            border: 1px solid #3663ae;
-            box-shadow: 0 0 18px #2563eb20;
+        .triac-detail {
+            display: flex;
+            gap: 1.5rem;
+            color: #bfd6ff;
+        }
+        .triac-detail span i {
+            color: #f97316;
+            margin-right: 5px;
         }
 
-        .speed-big {
-            font-size: 5rem;
-            font-weight: 700;
-            line-height: 1;
-            color: white;
-            text-shadow: 0 0 20px #3b82f6;
-            letter-spacing: 4px;
+        /* hardware monitor (like OLED) */
+        .monitor-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.2rem;
         }
-        .speed-unit {
-            font-size: 2rem;
-            color: #95b9ff;
-            margin-left: 0.3rem;
-        }
-        .speed-label {
-            color: #869ac0;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            font-size: 0.8rem;
-            margin-top: 0.4rem;
+        @media (max-width: 600px) {
+            .monitor-panel {
+                grid-template-columns: 1fr;
+            }
         }
 
-        .oled-preview {
-            background: #0f1a28;
-            border-radius: 1.8rem;
-            padding: 1.2rem 1.5rem;
-            border: 2px solid #3865a0;
-            box-shadow: 0 0 0 2px #0e1a28;
-            margin-top: 1rem;
+        .oled-sim {
+            background: #0d1a28;
+            border-radius: 2rem;
+            padding: 1.5rem 1.5rem;
+            border: 2px solid #3d6190;
+            box-shadow: 0 0 0 2px #0b1a2c;
         }
-
         .oled-line {
             display: flex;
             justify-content: space-between;
-            color: #c3d9ff;
+            color: #c1d9ff;
             font-size: 0.9rem;
-            margin-bottom: 0.4rem;
+            font-family: 'Courier New', monospace;
         }
-        .oled-line i {
-            color: #6eb0ff;
-            width: 18px;
-        }
-        .oled-big {
-            font-size: 2.2rem;
+        .oled-speed-large {
+            font-size: 2.8rem;
             font-weight: 600;
             color: white;
             text-align: center;
-            letter-spacing: 2px;
-            background: #000c1a;
-            padding: 0.2rem 0.5rem;
-            border-radius: 14px;
-            border: 1px solid #4e7ac7;
-            margin-top: 6px;
+            background: #001122;
+            border-radius: 20px;
+            padding: 0.2rem;
+            margin-top: 0.4rem;
+            border: 1px solid #3a6291;
         }
 
-        .status-bar {
+        .zc-card {
+            background: #0f1b2c;
+            border-radius: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #3f5d86;
             display: flex;
+            flex-direction: column;
             justify-content: space-between;
-            margin-top: 1.8rem;
-            color: #a0b9e0;
-            font-size: 0.9rem;
-            background: #060c18c0;
-            padding: 0.8rem 1.5rem;
+        }
+        .zc-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .pulse-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 40px;
+            background: #facc15;
+            box-shadow: 0 0 12px #fbbf24;
+        }
+        .delay-badge {
+            background: #233250;
             border-radius: 60px;
-            border: 1px solid #253c60;
+            padding: 0.6rem 1.2rem;
+            font-family: monospace;
+            color: #fcd34d;
+            font-size: 1.2rem;
         }
 
-        .status-bar i {
-            color: #2dd4bf;
-            margin-right: 0.4rem;
+        /* action buttons */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.8rem;
+        }
+        .btn {
+            background: #1f2f4a;
+            border: none;
+            color: white;
+            padding: 0.8rem 2.2rem;
+            border-radius: 60px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid #3865a5;
+        }
+        .btn-primary {
+            background: #2563eb;
+            box-shadow: 0 6px 14px #1e3b8a80;
+            border: 1px solid #6095ff;
+        }
+        .btn-primary:hover {
+            background: #3b82f6;
+        }
+        .btn:active {
+            transform: scale(0.97);
         }
 
-        .badge {
-            background: #1e2d48;
-            border-radius: 30px;
-            padding: 0.3rem 1.2rem;
-            color: #bee0ff;
-            font-weight: 500;
+        .footer-note {
+            text-align: right;
+            color: #4a6792;
+            font-size: 0.8rem;
+            margin-top: 1.5rem;
         }
     </style>
 </head>
 <body>
-    <div class="dashboard">
-        <div class="card">
+<div class="webapp-container">
+    <div class="control-card">
 
-            <!-- top tags : WiFi + Firebase + pins -->
-            <div class="header-tags">
-                <div class="tag">
-                    <i class="fas fa-wifi"></i>
-                    <span>iPhone</span>
-                    <span class="highlight"><i class="fas fa-lock" style="font-size:0.7rem;"></i> ••••••••</span>
-                </div>
-                <div class="tag">
-                    <i class="fas fa-database"></i>
-                    <span>ac-motor-speed-control</span>
-                </div>
-                <div class="tag">
-                    <i class="fas fa-microchip"></i>
-                    <span>ZC: GPIO27</span>
-                    <i class="fas fa-bolt" style="color:#f97316; margin-left:0.2rem;"></i>
-                    <span>TRIAC: GPIO25</span>
-                </div>
-                <div class="wifi-symbol">
-                    <i class="fas fa-circle" style="font-size: 0.5rem;"></i>
-                    <i class="fas fa-circle" style="font-size: 0.65rem;"></i>
-                    <i class="fas fa-circle" style="font-size: 0.8rem;"></i>
-                    <span style="color:#b9d5ff; margin-left:6px;">connected</span>
+        <!-- header -->
+        <div class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon"><i class="fas fa-fan"></i></div>
+                <div class="title">
+                    <h1>AC motor · speed control</h1>
+                    <p><i class="fas fa-microchip"></i> ESP32 + TRIAC + zero cross</p>
                 </div>
             </div>
-
-            <!-- main grid: zero cross + triac (left) and speed + firebase (right) -->
-            <div class="grid-2">
-                <!-- left: TRIAC + zero cross section -->
-                <div class="triac-panel">
-                    <div class="panel-title">
-                        <i class="fas fa-wave-square"></i>  ZERO CROSS & TRIAC
-                    </div>
-                    <div class="zc-visual">
-                        <div class="sine-row">
-                            <!-- simple AC sine representation -->
-                            <svg class="sine-svg" viewBox="0 0 160 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M5 15 Q20 0, 35 15 T65 15 T95 15 T125 15 T155 15" stroke="#3b82f6" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-                                <circle cx="5" cy="15" r="3" fill="#f97316" />
-                                <text x="14" y="8" fill="#ffd966" font-size="7">ZC interrupt</text>
-                            </svg>
-                            <div class="pulse-badge">
-                                <i class="fas fa-bolt"></i> zeroCross = true
-                            </div>
-                        </div>
-                        <div style="margin: 1rem 0 0.3rem; color:#a9c6ff; font-size:0.9rem; display:flex; gap:2rem;">
-                            <span><i class="far fa-clock"></i> delayTime = map(speed,0,100,8000,200)µs</span>
-                        </div>
-                    </div>
-                    <!-- triac pin simulation -->
-                    <div class="triac-pin">
-                        <div class="pin-label">
-                            <i class="fas fa-bolt"></i>
-                            <span>TRIAC firing pulse</span>
-                        </div>
-                        <div class="pin-number">
-                            <i class="fas fa-arrow-up"></i> GPIO25
-                        </div>
-                    </div>
-                    <div style="background:#0e1b2c; border-radius:30px; margin-top:12px; padding:0.6rem 1rem; color:#cbd5e1">
-                        <i class="fas fa-code"></i>  fireTriac(): digitalWrite(HIGH) 100µs
-                    </div>
-                </div>
-
-                <!-- right: SPEED + Firebase panel -->
-                <div class="speed-panel">
-                    <div class="firebase-row">
-                        <i class="fas fa-fire"></i>
-                        <span>Firebase</span>
-                        <span class="fb-path">/fan/speed</span>
-                        <i class="fas fa-check-circle" style="color:#10b981;"></i>
-                    </div>
-
-                    <!-- live speed readout (real-time simulation) -->
-                    <div class="speed-readout" id="speedDisplay">
-                        <div class="speed-big">
-                            68<span class="speed-unit">%</span>
-                        </div>
-                        <div class="speed-label">CURRENT SPEED</div>
-                    </div>
-
-                    <!-- small note: map range -->
-                    <div style="display: flex; gap: 1rem; justify-content: space-between; color:#7896c5; font-size:0.8rem; padding:0 0.5rem;">
-                        <span><i class="fas fa-arrow-down"></i> 0% → 8000µs</span>
-                        <span><i class="fas fa-arrow-up"></i> 100% → 200µs</span>
-                    </div>
-
-                    <!-- OLED preview mimic -->
-                    <div class="oled-preview">
-                        <div class="oled-line">
-                            <span><i class="fas fa-wifi"></i> WiFi: Connected</span>
-                            <span><i class="fas fa-microchip"></i> </span>
-                        </div>
-                        <div style="font-size:1.1rem; color:#c3e0ff;">Speed</div>
-                        <div class="oled-big" id="oledSpeed">68%</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- bottom status bar with RTDB and live update simulation -->
-            <div class="status-bar">
-                <div><i class="fas fa-sync-alt fa-spin" style="--fa-animation-duration: 3s;"></i> RTDB getInt()  </div>
-                <div class="badge" id="timestampBadge"><i class="far fa-clock"></i> updated: just now</div>
-                <div><i class="fas fa-microchip"></i> loop() ~300ms</div>
-            </div>
-
-            <!-- footnote: ISR + mapping exactly as code -->
-            <div style="display:flex; justify-content: flex-end; font-size:0.7rem; color:#5f7bb3; margin-top:1.5rem; gap:0.8rem; border-top: 1px dashed #253e66; padding-top:1rem;">
-                <span><i class="fas fa-bolt"></i> IRAM_ATTR zeroCrossISR()</span>
-                <span><i class="fas fa-chart-line"></i> map(speedPercent,0,100,8000,200)</span>
-                <span><i class="fas fa-microscope"></i> SSD1306 0x3C</span>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-led" id="statusLed"></span>
+                <span class="status-text" id="statusText">Connecting...</span>
             </div>
         </div>
+
+        <!-- main slider area -->
+        <div class="speed-dial">
+            <div class="speed-percentage">
+                <span class="speed-number" id="speedDisplay">0</span>
+                <span class="speed-symbol">%</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" id="speedSlider" min="0" max="100" value="0" step="1">
+                <div class="slider-labels">
+                    <span><i class="fas fa-moon"></i> 0% (8000µs)</span>
+                    <span><i class="fas fa-bolt"></i> 100% (200µs)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Firebase + TRIAC info -->
+        <div class="info-row">
+            <div class="fb-path">
+                <i class="fas fa-database"></i>
+                <span>fan / speed</span>
+                <code id="firebasePath">ac-motor-speed-control</code>
+            </div>
+            <div class="triac-detail">
+                <span><i class="fas fa-wave-square"></i> ZC: GPIO27</span>
+                <span><i class="fas fa-bolt"></i> TRIAC: GPIO25</span>
+                <span><i class="fas fa-chart-line"></i> map: 8000→200µs</span>
+            </div>
+        </div>
+
+        <!-- realtime monitor (OLED + ZC) -->
+        <div class="monitor-panel">
+            <div class="oled-sim">
+                <div class="oled-line">
+                    <span><i class="fas fa-wifi"></i> WiFi: Connected</span>
+                    <span><i class="fas fa-bluetooth"></i> </span>
+                </div>
+                <div class="oled-line" style="margin-top: 6px;">Speed</div>
+                <div class="oled-speed-large" id="oledBig">0%</div>
+                <div class="oled-line" style="margin-top: 10px;">
+                    <span><i class="fas fa-sync-alt"></i> RTDB sync</span>
+                    <span id="oledTimestamp">just now</span>
+                </div>
+            </div>
+            <div class="zc-card">
+                <div class="zc-row">
+                    <span class="pulse-indicator" id="zcPulse"></span>
+                    <span style="color:#fcd34d;">zeroCross = true</span>
+                </div>
+                <div style="margin-top: 0.8rem; color:#adc9ff;">firing delay</div>
+                <div class="delay-badge" id="delayValue">8000 µs</div>
+                <div style="margin-top: 0.7rem; color:#8fb4f0;">
+                    <i class="fas fa-arrow-right"></i> fireTriac() 100µs pulse
+                </div>
+            </div>
+        </div>
+
+        <!-- control buttons -->
+        <div class="action-buttons">
+            <button class="btn" id="readFirebaseBtn"><i class="fas fa-cloud-download-alt"></i> Pull from Firebase</button>
+            <button class="btn btn-primary" id="updateFirebaseBtn"><i class="fas fa-cloud-upload-alt"></i> Push speed</button>
+        </div>
+        <div class="footer-note">
+            <i class="fas fa-circle-nodes"></i> live connection · Firebase Realtime Database
+        </div>
     </div>
+</div>
 
-    <!-- tiny script to simulate speed changes (like real Firebase values) -->
-    <script>
-        (function() {
-            // simulate varying speed percentage (like real fan control)
-            const speedBigElement = document.querySelector('#speedDisplay .speed-big');
-            const oledElement = document.getElementById('oledSpeed');
-            const timeBadge = document.getElementById('timestampBadge');
+<script>
+    (function() {
+        // ------- Firebase configuration (same as your ESP32) --------
+        const firebaseConfig = {
+            apiKey: "AIzaSyCso7pGiccOVruRU5AYmtPDt2iwSyjXvFs",
+            databaseURL: "https://ac-motor-speed-control-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "ac-motor-speed-control",
+            authDomain: "ac-motor-speed-control.firebaseapp.com", // optional but good
+        };
 
-            let currentSpeed = 42; // start value
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const speedRef = database.ref('fan/speed');
 
-            function updateSpeed() {
-                // mimic Firebase RTDB updates: new speed between 0 and 100
-                const newSpeed = Math.floor(Math.random() * 101); // 0..100
-                currentSpeed = newSpeed;
+        // ------- DOM elements ---------
+        const speedDisplay = document.getElementById('speedDisplay');
+        const speedSlider = document.getElementById('speedSlider');
+        const oledBig = document.getElementById('oledBig');
+        const delayValue = document.getElementById('delayValue');
+        const statusLed = document.getElementById('statusLed');
+        const statusText = document.getElementById('statusText');
+        const oledTimestamp = document.getElementById('oledTimestamp');
+        const zcPulse = document.getElementById('zcPulse');
 
-                // update main big readout
-                if (speedBigElement) {
-                    speedBigElement.innerHTML = currentSpeed + '<span class="speed-unit">%</span>';
+        // current speed (from slider or firebase)
+        let currentSpeed = 0;
+        let firebaseConnected = false;
+
+        // Helper: update UI with speed value (0-100)
+        function updateSpeedUI(speed) {
+            // clamp
+            speed = Math.min(100, Math.max(0, Number(speed)));
+            if (isNaN(speed)) speed = 0;
+
+            currentSpeed = speed;
+
+            // main display + slider
+            speedDisplay.innerText = speed;
+            speedSlider.value = speed;
+            oledBig.innerText = speed + '%';
+
+            // compute delay time: map(speed,0,100,8000,200)
+            const delayMicros = Math.round(mapSpeedToDelay(speed));
+            delayValue.innerText = delayMicros + ' µs';
+
+            // update timestamp (local)
+            const now = new Date();
+            oledTimestamp.innerText = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        // map function same as Arduino: (0% → 8000, 100% → 200)
+        function mapSpeedToDelay(speed) {
+            return 8000 - (speed * (7800 / 100));  // 8000 → 200 linearly
+            // more explicit: 8000 to 200, range 7800
+        }
+
+        // map delay to speed (for pulling from firebase we already have speed, but maybe not needed)
+        // but we keep
+
+        // ------ Firebase listeners -----
+        function checkConnection() {
+            const connectedRef = database.ref('.info/connected');
+            connectedRef.on('value', (snap) => {
+                if (snap.val() === true) {
+                    firebaseConnected = true;
+                    statusLed.className = 'status-led connected';
+                    statusText.innerText = 'Connected to Firebase';
+                } else {
+                    firebaseConnected = false;
+                    statusLed.className = 'status-led';
+                    statusText.innerText = 'Disconnected';
                 }
+            });
+        }
 
-                // update oled preview
-                if (oledElement) {
-                    oledElement.innerText = currentSpeed + '%';
+        // listen to speed from Firebase (realtime)
+        function listenToSpeed() {
+            speedRef.on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val !== null && typeof val === 'number') {
+                    updateSpeedUI(val);
+                } else {
+                    // if null or not number, default 0
+                    updateSpeedUI(0);
                 }
+            }, (error) => {
+                console.warn('Firebase read error:', error);
+            });
+        }
 
-                // update timestamp
-                const now = new Date();
-                const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                timeBadge.innerHTML = `<i class="far fa-clock"></i> updated: ${timeStr}`;
-
-                // slight color transition based on speed
-                const speedPanel = document.querySelector('.speed-readout');
-                if (speedPanel) {
-                    // cool effect: border glows brighter at higher speed
-                    const intensity = Math.min(0.8, 0.3 + (currentSpeed / 200));
-                    speedPanel.style.boxShadow = `0 0 ${8 + currentSpeed * 0.5}px #3b82f6`;
-                }
+        // push slider value to firebase
+        function pushSpeedToFirebase(speedValue) {
+            if (!firebaseConnected) {
+                alert('Firebase not connected, check network');
+                return;
             }
+            speedRef.set(speedValue)
+                .then(() => {
+                    console.log('Speed updated to:', speedValue);
+                    // briefly show ack on timestamp
+                    oledTimestamp.innerText = 'pushed ✓ ' + new Date().toLocaleTimeString();
+                })
+                .catch((err) => {
+                    console.error('Firebase push error:', err);
+                    alert('Error writing to Firebase: ' + err.message);
+                });
+        }
 
-            // change speed every 2.5 seconds (simulate Firebase polling)
-            updateSpeed(); // initial
-            setInterval(updateSpeed, 2600);
-
-            // additional live info: simulate zeroCross flag toggle (visual)
-            setInterval(() => {
-                const pulse = document.querySelector('.pulse-badge');
-                if (pulse) {
-                    pulse.style.backgroundColor = '#facc1530';
-                    pulse.style.borderLeftColor = '#f97316';
-                    setTimeout(() => {
-                        pulse.style.backgroundColor = '#1e2b3f';
-                        pulse.style.borderLeftColor = '#facc15';
-                    }, 150);
+        // manual read (pull) from firebase – actually we already have listener, but explicit button
+        function pullFromFirebase() {
+            if (!firebaseConnected) {
+                alert('Firebase not connected');
+                return;
+            }
+            speedRef.get().then((snapshot) => {
+                if (snapshot.exists()) {
+                    const val = snapshot.val();
+                    if (typeof val === 'number') {
+                        updateSpeedUI(val);
+                    } else {
+                        updateSpeedUI(0);
+                    }
+                    oledTimestamp.innerText = 'pulled at ' + new Date().toLocaleTimeString();
+                } else {
+                    // no data, maybe set default 0
+                    updateSpeedUI(0);
                 }
-            }, 1800);
-        })();
-    </script>
-    <!-- subtle hover effect for authenticity -->
+            }).catch((err) => {
+                console.warn('Pull failed', err);
+            });
+        }
+
+        // zero cross simulation (blink for effect)
+        function simulateZeroCross() {
+            setInterval(() => {
+                // change opacity / background
+                zcPulse.style.background = '#fbbf24';
+                zcPulse.style.boxShadow = '0 0 18px #fbbf24';
+                setTimeout(() => {
+                    zcPulse.style.background = '#facc15';
+                    zcPulse.style.boxShadow = '0 0 12px #fbbf24';
+                }, 120);
+            }, 1600); // random around line frequency
+        }
+
+        // ---- init ----
+        function init() {
+            checkConnection();
+            listenToSpeed();  // realtime updates from Firebase (ESP32 writes)
+
+            // initial UI
+            updateSpeedUI(0);
+
+            // slider input event: local update only, not pushing automatically (to avoid flooding)
+            speedSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                // update UI but not firebase (user must push manually or we could add "auto" mode)
+                // we update speed display for preview
+                speedDisplay.innerText = val;
+                oledBig.innerText = val + '%';
+                const delayMicros = Math.round(mapSpeedToDelay(val));
+                delayValue.innerText = delayMicros + ' µs';
+                // but we don't change firebase until push button
+            });
+
+            // push button: send slider value to firebase
+            document.getElementById('updateFirebaseBtn').addEventListener('click', () => {
+                const val = parseInt(speedSlider.value, 10);
+                pushSpeedToFirebase(val);
+                // after push, listener will update everything consistently
+            });
+
+            // pull button: manually read from firebase
+            document.getElementById('readFirebaseBtn').addEventListener('click', () => {
+                pullFromFirebase();
+            });
+
+            // simulate zero cross interrupt visual
+            simulateZeroCross();
+
+            // also update delay when slider moves (already in input)
+            // make sure that any external update (listener) reflects on slider
+        }
+
+        init();
+
+        // Additional helper: if firebase writes from ESP32, it will reflect via listener.
+        // The map delay formula matches Arduino: map(speedPercent,0,100,8000,200)
+        // We used linear 8000 - speed*78  (since 7800/100 =78)
+        // test: 0% -> 8000, 100% -> 8000-7800=200 ok.
+
+        // small trick: update timestamp via listener but already included.
+    })();
+</script>
+<!-- additional note: firebase rules must allow reads/writes -->
 </body>
 </html>
