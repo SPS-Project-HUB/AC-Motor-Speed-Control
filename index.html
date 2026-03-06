@@ -1,21 +1,87 @@
-<input type="range" min="0" max="100" id="speed">
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>AC Motor Control</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+
+body{
+font-family:Arial;
+text-align:center;
+background:#111;
+color:white;
+}
+
+.container{
+margin-top:60px;
+}
+
+input{
+width:300px;
+}
+
+.speed{
+font-size:50px;
+margin:20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>AC Motor Speed Control</h1>
+
+<div class="speed" id="speedValue">0%</div>
+
+<input type="range" min="0" max="100" value="0" id="slider">
+
+<p>Frequency: <span id="freq">0</span> Hz</p>
+
+</div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 
 const firebaseConfig = {
-  databaseURL: "https://ac-motor-speed-control-default-rtdb.asia-southeast1.firebasedatabase.app/"
+
+databaseURL:"https://ac-motor-speed-control-default-rtdb.asia-southeast1.firebasedatabase.app/"
+
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-document.getElementById("speed").oninput = function(){
+/* Slider */
 
-set(ref(db,'AC_Motor/speed'), parseInt(this.value));
+const slider=document.getElementById("slider");
+const speedValue=document.getElementById("speedValue");
+
+slider.oninput=function(){
+
+speedValue.innerHTML=this.value+"%";
+
+set(ref(db,"AC_Motor/speed"),parseInt(this.value));
 
 }
 
+/* Frequency */
+
+onValue(ref(db,"AC_Motor/frequency"),(snapshot)=>{
+
+document.getElementById("freq").innerHTML=snapshot.val();
+
+});
+
 </script>
+
+</body>
+</html>
