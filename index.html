@@ -1,87 +1,427 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-
-<title>AC Motor Control</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-
-body{
-font-family:Arial;
-text-align:center;
-background:#111;
-color:white;
-}
-
-.container{
-margin-top:60px;
-}
-
-input{
-width:300px;
-}
-
-.speed{
-font-size:50px;
-margin:20px;
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AC Motor Speed Control</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        h1 i {
+            color: #667eea;
+            margin-right: 10px;
+        }
+        
+        .speed-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .speed-value {
+            font-size: 72px;
+            font-weight: bold;
+            line-height: 1;
+        }
+        
+        .speed-unit {
+            font-size: 24px;
+            opacity: 0.9;
+        }
+        
+        .speed-label {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-top: 10px;
+        }
+        
+        .control-panel {
+            background: #f5f5f5;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .slider-container {
+            margin-bottom: 30px;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        input[type=range] {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 25px;
+            height: 25px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            border: 2px solid #667eea;
+            transition: 0.2s;
+        }
+        
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+        
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .preset-btn {
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .preset-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .preset-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .status-panel {
+            background: #f5f5f5;
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .status-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .status-value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .status-value.connected {
+            color: #4CAF50;
+        }
+        
+        .status-value.disconnected {
+            color: #f44336;
+        }
+        
+        .motor-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .motor-status.running {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .motor-status.stopped {
+            background: #f44336;
+            color: white;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .speed-value {
+                font-size: 56px;
+            }
+            
+            .preset-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
-
 <body>
+    <div class="container">
+        <h1>
+            <i>⚡</i>
+            AC Motor Speed Control
+        </h1>
+        
+        <div class="speed-display">
+            <div class="speed-value" id="currentSpeed">80</div>
+            <div class="speed-unit">%</div>
+            <div class="speed-label">Current Motor Speed</div>
+        </div>
+        
+        <div class="control-panel">
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Speed Control</span>
+                    <span id="sliderValue">80%</span>
+                </div>
+                <input type="range" id="speedSlider" min="0" max="100" value="80" step="1">
+            </div>
+            
+            <div class="preset-buttons">
+                <button class="preset-btn" data-speed="0">OFF</button>
+                <button class="preset-btn" data-speed="25">25%</button>
+                <button class="preset-btn" data-speed="50">50%</button>
+                <button class="preset-btn" data-speed="75">75%</button>
+                <button class="preset-btn" data-speed="100">100%</button>
+                <button class="preset-btn" data-speed="30">30%</button>
+                <button class="preset-btn" data-speed="60">60%</button>
+                <button class="preset-btn" data-speed="90">90%</button>
+            </div>
+        </div>
+        
+        <div class="status-panel">
+            <div class="status-item">
+                <span class="status-label">Connection Status:</span>
+                <span class="status-value" id="connectionStatus">Connecting...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Motor Status:</span>
+                <span class="status-value" id="motorStatus">Running</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Last Update:</span>
+                <span class="status-value" id="lastUpdate">--:--:--</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Database:</span>
+                <span class="status-value" id="databaseStatus">Checking...</span>
+            </div>
+        </div>
+    </div>
 
-<div class="container">
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            databaseURL: "https://ac-motor-speed-control-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
 
-<h1>AC Motor Speed Control</h1>
-
-<div class="speed" id="speedValue">0%</div>
-
-<input type="range" min="0" max="100" value="0" id="slider">
-
-<p>Frequency: <span id="freq">0</span> Hz</p>
-
-</div>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
-
-const firebaseConfig = {
-
-databaseURL:"https://ac-motor-speed-control-default-rtdb.asia-southeast1.firebasedatabase.app/"
-
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-/* Slider */
-
-const slider=document.getElementById("slider");
-const speedValue=document.getElementById("speedValue");
-
-slider.oninput=function(){
-
-speedValue.innerHTML=this.value+"%";
-
-set(ref(db,"AC_Motor/speed"),parseInt(this.value));
-
-}
-
-/* Frequency */
-
-onValue(ref(db,"AC_Motor/frequency"),(snapshot)=>{
-
-document.getElementById("freq").innerHTML=snapshot.val();
-
-});
-
-</script>
-
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // DOM elements
+        const speedSlider = document.getElementById('speedSlider');
+        const sliderValue = document.getElementById('sliderValue');
+        const currentSpeed = document.getElementById('currentSpeed');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const motorStatus = document.getElementById('motorStatus');
+        const lastUpdate = document.getElementById('lastUpdate');
+        const databaseStatus = document.getElementById('databaseStatus');
+        const presetButtons = document.querySelectorAll('.preset-btn');
+        
+        let lastSentSpeed = 80;
+        let updateTimeout;
+        
+        // Update slider value display
+        speedSlider.addEventListener('input', function() {
+            const value = this.value;
+            sliderValue.textContent = value + '%';
+            
+            // Clear previous timeout
+            if (updateTimeout) {
+                clearTimeout(updateTimeout);
+            }
+            
+            // Set new timeout for debouncing
+            updateTimeout = setTimeout(() => {
+                updateFirebaseSpeed(parseInt(value));
+            }, 500);
+        });
+        
+        // Preset button click handlers
+        presetButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const speed = parseInt(this.dataset.speed);
+                speedSlider.value = speed;
+                sliderValue.textContent = speed + '%';
+                updateFirebaseSpeed(speed);
+                
+                // Highlight active button
+                presetButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        
+        // Function to update speed in Firebase
+        function updateFirebaseSpeed(speed) {
+            const motorRef = database.ref('motor');
+            
+            motorRef.update({
+                speed: speed,
+                lastControl: new Date().toISOString(),
+                controlledBy: 'webapp'
+            })
+            .then(() => {
+                console.log('Speed updated to:', speed);
+                lastSentSpeed = speed;
+                updateConnectionStatus('Connected', true);
+            })
+            .catch((error) => {
+                console.error('Firebase error:', error);
+                updateConnectionStatus('Error: ' + error.message, false);
+            });
+        }
+        
+        // Listen for real-time updates from ESP32
+        database.ref('motor').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                // Update current speed display
+                if (data.speed !== undefined) {
+                    currentSpeed.textContent = data.speed;
+                    
+                    // Update slider if change came from elsewhere
+                    if (data.speed !== lastSentSpeed) {
+                        speedSlider.value = data.speed;
+                        sliderValue.textContent = data.speed + '%';
+                    }
+                }
+                
+                // Update motor status
+                if (data.speed > 0) {
+                    motorStatus.textContent = 'Running';
+                    motorStatus.className = 'motor-status running';
+                } else {
+                    motorStatus.textContent = 'Stopped';
+                    motorStatus.className = 'motor-status stopped';
+                }
+                
+                // Update last update time
+                if (data.lastUpdate) {
+                    const date = new Date(data.lastUpdate);
+                    lastUpdate.textContent = date.toLocaleTimeString();
+                } else {
+                    lastUpdate.textContent = new Date().toLocaleTimeString();
+                }
+                
+                databaseStatus.textContent = 'Connected';
+                databaseStatus.style.color = '#4CAF50';
+            }
+        }, (error) => {
+            console.error('Database error:', error);
+            databaseStatus.textContent = 'Error';
+            databaseStatus.style.color = '#f44336';
+        });
+        
+        // Monitor connection state
+        database.ref('.info/connected').on('value', (snapshot) => {
+            if (snapshot.val() === true) {
+                updateConnectionStatus('Connected', true);
+            } else {
+                updateConnectionStatus('Disconnected', false);
+            }
+        });
+        
+        function updateConnectionStatus(status, isConnected) {
+            connectionStatus.textContent = status;
+            connectionStatus.className = isConnected ? 'status-value connected' : 'status-value disconnected';
+        }
+        
+        // Initialize with default speed
+        window.addEventListener('load', () => {
+            updateFirebaseSpeed(80);
+        });
+        
+        // Add touch support for mobile
+        speedSlider.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+        });
+        
+        // Keyboard support
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                const newValue = Math.min(100, parseInt(speedSlider.value) + 5);
+                speedSlider.value = newValue;
+                sliderValue.textContent = newValue + '%';
+                updateFirebaseSpeed(newValue);
+            } else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                const newValue = Math.max(0, parseInt(speedSlider.value) - 5);
+                speedSlider.value = newValue;
+                sliderValue.textContent = newValue + '%';
+                updateFirebaseSpeed(newValue);
+            }
+        });
+    </script>
 </body>
 </html>
